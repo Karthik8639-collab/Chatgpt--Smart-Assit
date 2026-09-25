@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChatRecall AI Pro - Smart Companion Dashboard</title>
+  <title>OmniAssist AI - Universal AI Companion Dashboard</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,13 +11,12 @@
 </head>
 <body class="app-body">
   <div class="app-layout">
-    <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-brand">
         <div class="logo-icon">⚡</div>
         <div class="logo-text">
-          <h1>ChatRecall AI</h1>
-          <span class="subtext">Smart Companion</span>
+          <h1>OmniAssist AI</h1>
+          <span class="subtext">Universal Companion</span>
         </div>
       </div>
 
@@ -28,8 +27,17 @@
         <button class="nav-item" data-view="favorites">
           <span class="icon">⭐</span> Bookmarks (<span id="count-fav">0</span>)
         </button>
+        <button class="nav-item" data-view="gemini">
+          <span class="icon">✨</span> Gemini Captures (<span id="count-gemini">0</span>)
+        </button>
         <button class="nav-item" data-view="chatgpt">
           <span class="icon">🤖</span> ChatGPT Captures (<span id="count-gpt">0</span>)
+        </button>
+        <button class="nav-item" data-view="claude">
+          <span class="icon">🟧</span> Claude Captures (<span id="count-claude">0</span>)
+        </button>
+        <button class="nav-item" data-view="other">
+          <span class="icon">🌐</span> Web & Other (<span id="count-other">0</span>)
         </button>
       </nav>
 
@@ -38,18 +46,16 @@
       </div>
     </aside>
 
-    <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Top Action Header -->
       <header class="top-header">
         <div class="search-bar-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="searchBar" placeholder="Search prompts, code snippets, key phrases..." />
+          <input type="text" id="searchBar" placeholder="Search prompts across Gemini, ChatGPT, Claude..." />
           <button id="btn-clear-search" class="clear-search-btn" style="display:none;">✕</button>
         </div>
 
         <div class="header-actions">
-          <button id="btn-load-demo" class="btn outline small" title="Load sample data">Load Demo</button>
+          <button id="btn-load-demo" class="btn outline small" title="Load sample multi-provider AI data">Load Demo</button>
           <button id="btn-import-file" class="btn outline small">📥 Import JSON</button>
           <input type="file" id="file-input-json" accept=".json" style="display:none;" />
           <button id="btn-export-dropdown" class="btn secondary small">💾 Export ▾</button>
@@ -61,7 +67,6 @@
         </div>
       </header>
 
-      <!-- Memory Items Grid -->
       <section class="content-body">
         <div class="stats-banner">
           <div class="stat-card">
@@ -78,14 +83,11 @@
           </div>
         </div>
 
-        <div id="messagesContainer" class="messages-grid">
-          <!-- Dynamically populated memory cards -->
-        </div>
+        <div id="messagesContainer" class="messages-grid"></div>
       </section>
     </main>
   </div>
 
-  <!-- Add Memory Modal -->
   <div id="modal-add" class="modal-backdrop" style="display:none;">
     <div class="modal-card">
       <div class="modal-header">
@@ -95,7 +97,19 @@
       <div class="modal-body">
         <div class="form-group">
           <label for="input-title">Title / Topic</label>
-          <input type="text" id="input-title" placeholder="e.g., Python Async Execution pattern" />
+          <input type="text" id="input-title" placeholder="e.g., Gemini 1.5 Pro Context Window comparison" />
+        </div>
+        <div class="form-group">
+          <label for="input-provider">AI Provider</label>
+          <select id="input-provider">
+            <option value="Gemini">✨ Gemini</option>
+            <option value="ChatGPT">🤖 ChatGPT</option>
+            <option value="Claude">🟧 Claude</option>
+            <option value="Perplexity">🔍 Perplexity</option>
+            <option value="DeepSeek">🐋 DeepSeek</option>
+            <option value="Poe">⚡ Poe</option>
+            <option value="Web">🌐 Web / Other</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="input-text">Prompt & Answer Content</label>
@@ -103,7 +117,7 @@
         </div>
         <div class="form-group">
           <label for="input-tags">Tags (comma separated)</label>
-          <input type="text" id="input-tags" placeholder="python, api, shortcut" />
+          <input type="text" id="input-tags" placeholder="gemini, benchmark, code" />
         </div>
       </div>
       <div class="modal-footer">
@@ -112,7 +126,6 @@
     </div>
   </div>
 
-  <!-- View Detail Modal -->
   <div id="modal-view" class="modal-backdrop" style="display:none;">
     <div class="modal-card large">
       <div class="modal-header">
@@ -121,7 +134,7 @@
       </div>
       <div class="modal-body">
         <div class="meta-info">
-          <span id="view-time">Timestamp</span> | <span id="view-source">Source</span>
+          <span id="view-provider" class="provider-badge">Provider</span> | <span id="view-time">Timestamp</span> | <span id="view-source">Source</span>
         </div>
         <pre id="view-text-content" class="code-preview"></pre>
       </div>
