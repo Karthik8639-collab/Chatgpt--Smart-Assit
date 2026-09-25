@@ -1,9 +1,8 @@
 /**
- * ChatGPT SmartAssist - Background Service Worker (Manifest V3)
- * Robust background manager with context menu isolation, safe message dispatching, and storage deduplication.
+ * OmniAssist AI - Background Service Worker (Manifest V3)
+ * Universal multi-provider AI storage & background coordinator for Gemini, ChatGPT, Claude, Perplexity, DeepSeek, and more.
  */
 
-// Initialize storage & context menus safely on install
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(["chatRecall", "smartAssistSettings"], (result) => {
     if (!result.chatRecall) {
@@ -20,38 +19,52 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
 
-  // Re-register context menus cleanly to prevent duplicate ID runtime errors
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id: "smartassist_save_selection",
-      title: "📌 Save to SmartAssist Memory",
+      id: "omniassist_save_selection",
+      title: "📌 Save to OmniAssist Memory",
       contexts: ["selection"]
     });
 
     chrome.contextMenus.create({
-      id: "smartassist_search_selection",
-      title: "🔍 Search this text in SmartAssist",
+      id: "omniassist_search_selection",
+      title: "🔍 Search this text with OmniAssist",
       contexts: ["selection"]
     });
   });
 });
 
-// Handle Context Menu Actions with runtime error suppression
+function detectProviderFromUrl(url) {
+  if (!url) return "Web";
+  const u = url.toLowerCase();
+  if (u.includes("gemini.google.com")) return "Gemini";
+  if (u.includes("chatgpt.com") || u.includes("chat.openai.com")) return "ChatGPT";
+  if (u.includes("claude.ai")) return "Claude";
+  if (u.includes("perplexity.ai")) return "Perplexity";
+  if (u.includes("deepseek.com")) return "DeepSeek";
+  if (u.includes("poe.com")) return "Poe";
+  if (u.includes("mistral.ai")) return "Mistral";
+  if (u.includes("huggingface.co")) return "HuggingChat";
+  return "Web Page";
+}
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab || !tab.id) return;
 
-  if (info.menuItemId === "smartassist_save_selection" && info.selectionText) {
+  if (info.menuItemId === "omniassist_save_selection" && info.selectionText) {
     const selectedText = info.selectionText.trim();
+    const provider = detectProviderFromUrl(tab.url);
     saveMessageToStorage({
       id: Date.now().toString(),
-      title: selectedText.substring(0, 40) + (selectedText.length > 40 ? "..." : ""),
+      title: selectedText.substring(0, 45) + (selectedText.length > 45 ? "..." : ""),
       text: selectedText,
       source: tab.url || "Web Page",
+      provider: provider,
       time: new Date().toLocaleString(),
-      tags: ["quick-save"],
+      tags: ["quick-save", provider.toLowerCase()],
       isFavorite: false
     });
-  } else if (info.menuItemId === "smartassist_search_selection" && info.selectionText) {
+  } else if (info.menuItemId === "omniassist_search_selection" && info.selectionText) {
     chrome.tabs.sendMessage(
       tab.id,
       {
@@ -59,20 +72,18 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         term: info.selectionText
       },
       () => {
-        // Suppress error if active tab is not a supported content script page
         if (chrome.runtime.lastError) {
-          // Silent catch
+          // Suppress error if active page has no content script
         }
       }
     );
   }
 });
 
-// Listen for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "SAVE_MESSAGE") {
     saveMessageToStorage(request.payload, sendResponse);
-    return true; // Keep message channel open for async response
+    return true;
   }
 
   if (request.action === "GET_ALL_MESSAGES") {
@@ -90,18 +101,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-/**
- * Persist memory item safely with deduplication
- */
 function saveMessageToStorage(item, callback) {
   chrome.storage.local.get(["chatRecall"], (result) => {
     const messages = result.chatRecall || [];
     const exists = messages.some((m) => m.text === item.text);
 
     if (!exists) {
+      if (!item.provider) {
+        item.provider = detectProviderFromUrl(item.source);
+      }
       messages.unshift(item);
       chrome.storage.local.set({ chatRecall: messages }, () => {
-        if (callback) callback({ status: "success", message: "Saved to SmartAssist memory!" });
+        if (callback) callback({ status: "success", message: "Saved to OmniAssist memory!" });
       });
     } else if (callback) {
       callback({ status: "duplicate", message: "Message already exists in memory." });
