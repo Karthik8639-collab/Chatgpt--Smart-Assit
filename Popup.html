@@ -1,18 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>SmartAssist</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 10px; width: 250px; }
-    input { width: 100%; padding: 5px; margin-bottom: 10px; }
-    button { width: 100%; padding: 8px; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatGPT SmartAssist</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <h3>🔍 SmartAssist</h3>
-  <input type="text" id="searchBox" placeholder="Search in chat...">
-  <button id="searchBtn">Search</button>
-  <div id="results"></div>
+<body class="popup-body">
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="brand">
+        <span class="brand-icon">⚡</span>
+        <div>
+          <h2>SmartAssist</h2>
+          <span class="badge">v2.0 Pro</span>
+        </div>
+      </div>
+      <button id="open-web-app" class="icon-btn" title="Open Full Companion Web App">↗</button>
+    </header>
+
+    <div class="search-section">
+      <input type="text" id="popup-search-input" placeholder="Search saved memories or active chat..." autofocus />
+      <button id="btn-trigger-inpage-search" class="action-btn small" title="Highlight text directly in active ChatGPT tab">In-Chat Search</button>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-saved">Saved Memories (<span id="saved-count">0</span>)</button>
+      <button class="tab-btn" data-tab="tab-tools">Quick Tools</button>
+    </div>
+
+    <div id="tab-saved" class="tab-content active">
+      <div id="saved-list" class="saved-list">
+        <div class="empty-state">No saved memories yet. Click "Bookmark Chat Turn" in ChatGPT or save selected text!</div>
+      </div>
+    </div>
+
+    <div id="tab-tools" class="tab-content">
+      <div class="tools-grid">
+        <button id="btn-export-json" class="tool-card">
+          <span>💾 Export JSON</span>
+          <small>Backup all memories to file</small>
+        </button>
+        <button id="btn-export-md" class="tool-card">
+          <span>📝 Export Markdown</span>
+          <small>Formatted for notes & docs</small>
+        </button>
+        <button id="btn-clear-all" class="tool-card danger">
+          <span>🗑️ Clear Storage</span>
+          <small>Remove all saved memories</small>
+        </button>
+      </div>
+    </div>
+
+    <footer class="popup-footer">
+      <span id="status-msg">Ready</span>
+      <a href="https://github.com/Karthik8639-collab/Chatgpt--Smart-Assit" target="_blank" class="footer-link">GitHub Repo</a>
+    </footer>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
