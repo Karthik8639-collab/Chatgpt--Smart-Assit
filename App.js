@@ -1,6 +1,6 @@
 /**
- * ChatRecall AI Pro - Standalone Companion App Engine
- * High-performance local storage manager with full-text search, tagging, keyboard shortcuts, & exports.
+ * OmniAssist AI - Universal Companion Engine
+ * Multi-provider local memory manager for Gemini, ChatGPT, Claude, Perplexity, DeepSeek, Poe, and custom entries.
  */
 
 (function () {
@@ -18,9 +18,6 @@
     attachGlobalKeyboardShortcuts();
   }
 
-  /**
-   * Universal Storage Loader (Extension Storage API + LocalStorage fallback)
-   */
   function loadMemoriesFromStorage() {
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
       chrome.storage.local.get(["chatRecall"], (result) => {
@@ -42,11 +39,7 @@
     renderAll();
   }
 
-  /**
-   * UI Event Bindings
-   */
   function attachEventListeners() {
-    // Search input
     const searchBar = document.getElementById("searchBar");
     const clearBtn = document.getElementById("btn-clear-search");
 
@@ -63,7 +56,6 @@
       renderGrid();
     });
 
-    // Navigation Items
     document.querySelectorAll(".nav-item").forEach((btn) => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
@@ -73,7 +65,6 @@
       });
     });
 
-    // Clear All
     document.getElementById("btnClearAll").addEventListener("click", () => {
       if (confirm("Are you sure you want to delete all saved memories? This action cannot be undone.")) {
         memories = [];
@@ -81,12 +72,10 @@
       }
     });
 
-    // Load Demo Data
     document.getElementById("btn-load-demo").addEventListener("click", () => {
       loadSampleDemoData();
     });
 
-    // Modals
     const addModal = document.getElementById("modal-add");
     document.getElementById("btn-open-add-modal").addEventListener("click", () => {
       addModal.style.display = "flex";
@@ -99,9 +88,10 @@
 
     document.getElementById("btn-save-new-memory").addEventListener("click", () => {
       const title = document.getElementById("input-title").value.trim() || "Untitled Memory";
+      const provider = document.getElementById("input-provider").value;
       const text = document.getElementById("input-text").value.trim();
       const tagsInput = document.getElementById("input-tags").value.trim();
-      const tags = tagsInput ? tagsInput.split(",").map((t) => t.trim()) : ["custom"];
+      const tags = tagsInput ? tagsInput.split(",").map((t) => t.trim()) : [provider.toLowerCase()];
 
       if (!text) {
         alert("Please enter memory content!");
@@ -112,6 +102,7 @@
         id: Date.now().toString(),
         title,
         text,
+        provider,
         time: new Date().toLocaleString(),
         source: "Manual Entry",
         tags,
@@ -121,14 +112,12 @@
       memories.unshift(newMsg);
       saveMemoriesToStorage();
 
-      // Reset modal
       document.getElementById("input-title").value = "";
       document.getElementById("input-text").value = "";
       document.getElementById("input-tags").value = "";
       addModal.style.display = "none";
     });
 
-    // View Modal
     const viewModal = document.getElementById("modal-view");
     document.getElementById("modal-view-close").addEventListener("click", () => {
       viewModal.style.display = "none";
@@ -140,7 +129,6 @@
       alert("Copied text to clipboard!");
     });
 
-    // Dropdown Export
     const exportBtn = document.getElementById("btn-export-dropdown");
     const exportMenu = document.getElementById("export-menu");
     exportBtn.addEventListener("click", (e) => {
@@ -155,7 +143,6 @@
     document.getElementById("export-json").addEventListener("click", () => exportJSON());
     document.getElementById("export-md").addEventListener("click", () => exportMarkdown());
 
-    // Import JSON
     const importBtn = document.getElementById("btn-import-file");
     const fileInput = document.getElementById("file-input-json");
     importBtn.addEventListener("click", () => fileInput.click());
@@ -169,7 +156,6 @@
         try {
           const imported = JSON.parse(event.target.result);
           if (Array.isArray(imported)) {
-            // Deduplicate
             const existingIds = new Set(memories.map((m) => m.id));
             const newItems = imported.filter((item) => !existingIds.has(item.id));
             memories = [...newItems, ...memories];
@@ -186,9 +172,6 @@
     });
   }
 
-  /**
-   * Keyboard Shortcuts (ESC closes modals, Ctrl/Cmd + F focuses search)
-   */
   function attachGlobalKeyboardShortcuts() {
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
@@ -197,7 +180,7 @@
         document.getElementById("export-menu").style.display = "none";
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
         const activeTag = document.activeElement ? document.activeElement.tagName : "";
-        if (activeTag !== "INPUT" && activeTag !== "TEXTAREA") {
+        if (activeTag !== "INPUT" && activeTag !== "TEXTAREA" && activeTag !== "SELECT") {
           e.preventDefault();
           document.getElementById("searchBar").focus();
         }
@@ -205,9 +188,6 @@
     });
   }
 
-  /**
-   * Main Render Pipeline
-   */
   function renderAll() {
     updateStats();
     renderGrid();
@@ -216,7 +196,11 @@
   function updateStats() {
     document.getElementById("count-all").textContent = memories.length;
     document.getElementById("count-fav").textContent = memories.filter((m) => m.isFavorite).length;
-    document.getElementById("count-gpt").textContent = memories.filter((m) => m.source && m.source.includes("chatgpt")).length;
+
+    document.getElementById("count-gemini").textContent = memories.filter((m) => getProviderName(m) === "Gemini").length;
+    document.getElementById("count-gpt").textContent = memories.filter((m) => getProviderName(m) === "ChatGPT").length;
+    document.getElementById("count-claude").textContent = memories.filter((m) => getProviderName(m) === "Claude").length;
+    document.getElementById("count-other").textContent = memories.filter((m) => !["Gemini", "ChatGPT", "Claude"].includes(getProviderName(m))).length;
 
     document.getElementById("stat-total").textContent = memories.length;
 
@@ -229,26 +213,45 @@
     document.getElementById("stat-storage").textContent = `${kb} KB`;
   }
 
+  function getProviderName(item) {
+    if (item.provider) return item.provider;
+    if (item.source) {
+      const s = item.source.toLowerCase();
+      if (s.includes("gemini")) return "Gemini";
+      if (s.includes("chatgpt") || s.includes("openai")) return "ChatGPT";
+      if (s.includes("claude")) return "Claude";
+      if (s.includes("perplexity")) return "Perplexity";
+      if (s.includes("deepseek")) return "DeepSeek";
+      if (s.includes("poe")) return "Poe";
+    }
+    return "Web";
+  }
+
   function renderGrid() {
     const container = document.getElementById("messagesContainer");
     container.innerHTML = "";
 
     let filtered = memories;
 
-    // View Filter
     if (currentFilter === "favorites") {
       filtered = filtered.filter((m) => m.isFavorite);
+    } else if (currentFilter === "gemini") {
+      filtered = filtered.filter((m) => getProviderName(m) === "Gemini");
     } else if (currentFilter === "chatgpt") {
-      filtered = filtered.filter((m) => (m.source && m.source.includes("chatgpt")) || (m.tags && m.tags.includes("chatgpt-turn")));
+      filtered = filtered.filter((m) => getProviderName(m) === "ChatGPT");
+    } else if (currentFilter === "claude") {
+      filtered = filtered.filter((m) => getProviderName(m) === "Claude");
+    } else if (currentFilter === "other") {
+      filtered = filtered.filter((m) => !["Gemini", "ChatGPT", "Claude"].includes(getProviderName(m)));
     }
 
-    // Search Filter
     if (activeSearchQuery) {
       filtered = filtered.filter((m) => {
         const textMatch = m.text && m.text.toLowerCase().includes(activeSearchQuery);
         const titleMatch = m.title && m.title.toLowerCase().includes(activeSearchQuery);
+        const provMatch = getProviderName(m).toLowerCase().includes(activeSearchQuery);
         const tagMatch = m.tags && m.tags.some((t) => t.toLowerCase().includes(activeSearchQuery));
-        return textMatch || titleMatch || tagMatch;
+        return textMatch || titleMatch || provMatch || tagMatch;
       });
     }
 
@@ -267,18 +270,22 @@
       const card = document.createElement("div");
       card.className = "card";
 
+      const provider = getProviderName(msg);
       const titleText = escapeHtml(msg.title || "Saved Memory");
       const snippetText = escapeHtml(msg.text.length > 200 ? msg.text.substring(0, 200) + "..." : msg.text);
       const timeText = escapeHtml(msg.time || "N/A");
       const favClass = msg.isFavorite ? "fav-active" : "";
 
-      const tagsHtml = (msg.tags || ["note"])
+      const tagsHtml = (msg.tags || [provider.toLowerCase()])
         .map((t) => `<span class="tag">#${escapeHtml(t)}</span>`)
         .join(" ");
 
       card.innerHTML = `
         <div class="card-header">
-          <h4 class="card-title">${highlightText(titleText, activeSearchQuery)}</h4>
+          <div>
+            <span class="provider-badge badge-${provider.toLowerCase()}">${provider}</span>
+            <h4 class="card-title">${highlightText(titleText, activeSearchQuery)}</h4>
+          </div>
           <button class="star-btn ${favClass}" data-id="${msg.id}">${msg.isFavorite ? "★" : "☆"}</button>
         </div>
         <div class="card-meta">
@@ -293,7 +300,6 @@
         </div>
       `;
 
-      // Card Events
       card.querySelector(".star-btn").addEventListener("click", () => toggleFavorite(msg.id));
       card.querySelector(".view-btn").addEventListener("click", () => openViewModal(msg));
       card.querySelector(".copy-btn").addEventListener("click", (e) => {
@@ -323,6 +329,11 @@
   }
 
   function openViewModal(msg) {
+    const provider = getProviderName(msg);
+    const badge = document.getElementById("view-provider");
+    badge.textContent = provider;
+    badge.className = `provider-badge badge-${provider.toLowerCase()}`;
+
     document.getElementById("view-title").textContent = msg.title || "Memory Detail";
     document.getElementById("view-time").textContent = msg.time || "";
     document.getElementById("view-source").textContent = msg.source || "Local";
@@ -334,33 +345,44 @@
   function loadSampleDemoData() {
     const demoItems = [
       {
-        id: "demo-1",
-        title: "Python Async / Await Event Loop Pattern",
-        text: "Prompt: Explain async asyncio tasks in Python 3.12.\n\nResponse: Use `asyncio.TaskGroup()` for safe structured concurrency instead of `asyncio.gather()` when executing parallel coroutines.",
+        id: "demo-gemini-1",
+        title: "Gemini 1.5 Pro Multimodal Context Window",
+        text: "Prompt: What is the context window limit for Google Gemini 1.5 Pro?\n\nResponse: Gemini 1.5 Pro supports up to 2,000,000 (2 Million) tokens natively, allowing ingestion of 1 hour of video or entire code repositories.",
+        provider: "Gemini",
         time: new Date().toLocaleString(),
-        source: "https://chatgpt.com",
-        tags: ["python", "asyncio", "chatgpt-turn"],
+        source: "https://gemini.google.com",
+        tags: ["gemini", "ai-models", "context-window"],
         isFavorite: true
       },
       {
-        id: "demo-2",
-        title: "Chrome Extension MV3 Background Messaging",
-        text: "Prompt: How to send background messages in Chrome Extension Manifest V3?\n\nResponse: Use `chrome.runtime.sendMessage({ action: 'SAVE' }, response => ...)` and in background.js set `chrome.runtime.onMessage.addListener(...)` returning `true` for async callbacks.",
+        id: "demo-chatgpt-1",
+        title: "Python Async asyncio TaskGroup Pattern",
+        text: "Prompt: Explain async asyncio tasks in Python 3.12.\n\nResponse: Use `asyncio.TaskGroup()` for safe structured concurrency instead of `asyncio.gather()` when executing parallel coroutines.",
+        provider: "ChatGPT",
         time: new Date().toLocaleString(),
         source: "https://chatgpt.com",
-        tags: ["javascript", "chrome-extension", "chatgpt-turn"],
+        tags: ["chatgpt", "python", "asyncio"],
+        isFavorite: true
+      },
+      {
+        id: "demo-claude-1",
+        title: "Claude 3.5 Sonnet Artifacts & Coding Benchmark",
+        text: "Prompt: How does Claude 3.5 Sonnet handle UI rendering with Artifacts?\n\nResponse: Claude 3.5 Sonnet generates interactive HTML/SVG/React code in a dedicated side-panel sandbox called Artifacts.",
+        provider: "Claude",
+        time: new Date().toLocaleString(),
+        source: "https://claude.ai",
+        tags: ["claude", "artifacts", "react"],
         isFavorite: false
       }
     ];
 
-    // Add only items that don't exist
     const existingIds = new Set(memories.map((m) => m.id));
     const newDemos = demoItems.filter((d) => !existingIds.has(d.id));
 
     if (newDemos.length > 0) {
       memories = [...newDemos, ...memories];
       saveMemoriesToStorage();
-      alert("Sample demo data loaded!");
+      alert("Sample Multi-Provider AI demo data loaded!");
     } else {
       alert("Demo data is already loaded in your memory.");
     }
@@ -368,20 +390,22 @@
 
   function exportJSON() {
     const blob = new Blob([JSON.stringify(memories, null, 2)], { type: "application/json" });
-    downloadBlob(blob, "chatrecall-backup.json");
+    downloadBlob(blob, "omniassist-backup.json");
   }
 
   function exportMarkdown() {
-    let md = `# 🤖 ChatRecall AI - Saved Memory Collection\n\n_Exported on ${new Date().toLocaleString()}_\n\n---\n\n`;
+    let md = `# ⚡ OmniAssist AI - Saved Memory Collection\n\n_Exported on ${new Date().toLocaleString()}_\n\n---\n\n`;
     memories.forEach((item, i) => {
-      md += `## ${i + 1}. ${item.title || "Saved Memory"}\n`;
+      const prov = getProviderName(item);
+      md += `## ${i + 1}. [${prov}] ${item.title || "Saved Memory"}\n`;
+      md += `* **Provider:** ${prov}\n`;
       md += `* **Timestamp:** ${item.time}\n`;
       md += `* **Source:** ${item.source || "N/A"}\n`;
       md += `* **Tags:** ${item.tags ? item.tags.join(", ") : "none"}\n\n`;
       md += "```\n" + item.text + "\n```\n\n---\n\n";
     });
     const blob = new Blob([md], { type: "text/markdown" });
-    downloadBlob(blob, "chatrecall-export.md");
+    downloadBlob(blob, "omniassist-export.md");
   }
 
   function downloadBlob(blob, filename) {
