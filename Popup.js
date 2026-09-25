@@ -1,76 +1,68 @@
 /**
- * ChatGPT SmartAssist - Extension Popup Logic
- * XSS-sanitized memory rendering, tab management, and file export helpers.
+ * OmniAssist AI - Extension Popup Logic
+ * XSS-sanitized memory rendering with provider icons (Gemini, ChatGPT, Claude, Perplexity, DeepSeek).
  */
 
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   loadSavedMemories();
 
-  // Search input filter
   const searchInput = document.getElementById("popup-search-input");
   searchInput.addEventListener("input", (e) => {
     filterMemories(e.target.value);
   });
 
-  // Trigger in-chat search on active tab with error handling
   document.getElementById("btn-trigger-inpage-search").addEventListener("click", async () => {
     const term = searchInput.value.trim();
     if (!term) {
-      updateStatus("Enter a term to search in ChatGPT.");
+      updateStatus("Enter a term to search.");
       return;
     }
 
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && (tab.url.includes("chatgpt.com") || tab.url.includes("chat.openai.com"))) {
+      if (tab && tab.id) {
         chrome.tabs.sendMessage(tab.id, { action: "HIGHLIGHT_SEARCH", term }, () => {
           if (chrome.runtime.lastError) {
-            updateStatus("Could not connect to tab. Reload tab and retry.");
+            updateStatus("Could not connect to page. Reload tab & retry.");
           } else {
-            updateStatus("Search highlighted in ChatGPT!");
+            updateStatus("Search highlighted!");
           }
         });
-      } else {
-        updateStatus("Active tab is not ChatGPT!");
       }
     } catch (err) {
-      updateStatus("Tab search unavailable.");
+      updateStatus("Search unavailable on this page.");
     }
   });
 
-  // Open standalone web app in full tab
   document.getElementById("open-web-app").addEventListener("click", () => {
     chrome.tabs.create({ url: chrome.runtime.getURL("index.html") });
   });
 
-  // Export JSON
   document.getElementById("btn-export-json").addEventListener("click", () => {
     chrome.storage.local.get(["chatRecall"], (result) => {
       const data = result.chatRecall || [];
-      downloadFile(JSON.stringify(data, null, 2), "smartassist-memories.json", "application/json");
+      downloadFile(JSON.stringify(data, null, 2), "omniassist-memories.json", "application/json");
       updateStatus("Exported JSON file!");
     });
   });
 
-  // Export Markdown
   document.getElementById("btn-export-md").addEventListener("click", () => {
     chrome.storage.local.get(["chatRecall"], (result) => {
       const data = result.chatRecall || [];
-      let md = `# 🤖 ChatGPT SmartAssist - Saved Memories\n\n_Exported on ${new Date().toLocaleString()}_\n\n---\n\n`;
+      let md = `# ⚡ OmniAssist AI - Saved Memory Collection\n\n_Exported on ${new Date().toLocaleString()}_\n\n---\n\n`;
       data.forEach((item, i) => {
-        md += `### ${i + 1}. ${item.title || "Saved Memory"} (${item.time})\n`;
+        md += `### ${i + 1}. [${item.provider || "AI"}] ${item.title || "Saved Memory"} (${item.time})\n`;
         md += `**Source:** [${item.source || "Local"}](<${item.source || "#"}>)\n\n`;
         md += "```\n" + (item.text || "") + "\n```\n\n---\n\n";
       });
-      downloadFile(md, "smartassist-memories.md", "text/markdown");
+      downloadFile(md, "omniassist-memories.md", "text/markdown");
       updateStatus("Exported Markdown file!");
     });
   });
 
-  // Clear All
   document.getElementById("btn-clear-all").addEventListener("click", () => {
-    if (confirm("Are you sure you want to clear all saved memories?")) {
+    if (confirm("Clear all saved memories?")) {
       chrome.storage.local.set({ chatRecall: [] }, () => {
         loadSavedMemories();
         updateStatus("All memories cleared.");
@@ -79,9 +71,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-/**
- * Tab Navigation Handler
- */
 function initTabs() {
   const tabs = document.querySelectorAll(".tab-btn");
   tabs.forEach((tab) => {
@@ -96,9 +85,6 @@ function initTabs() {
   });
 }
 
-/**
- * Load and render stored memories
- */
 function loadSavedMemories() {
   chrome.storage.local.get(["chatRecall"], (result) => {
     const list = result.chatRecall || [];
@@ -107,9 +93,6 @@ function loadSavedMemories() {
   });
 }
 
-/**
- * Render items in popup list with strict XSS escaping
- */
 function renderMemoryList(items) {
   const container = document.getElementById("saved-list");
   container.innerHTML = "";
@@ -123,9 +106,19 @@ function renderMemoryList(items) {
     const card = document.createElement("div");
     card.className = "memory-card";
 
+    const headerRow = document.createElement("div");
+    headerRow.className = "memory-card-header";
+
+    const providerBadge = document.createElement("span");
+    providerBadge.className = `provider-badge badge-${(item.provider || "web").toLowerCase()}`;
+    providerBadge.textContent = item.provider || "Web";
+
     const timeSpan = document.createElement("span");
     timeSpan.className = "memory-time";
     timeSpan.textContent = item.time || "Recent";
+
+    headerRow.appendChild(providerBadge);
+    headerRow.appendChild(timeSpan);
 
     const titleEl = document.createElement("strong");
     titleEl.className = "memory-title";
@@ -143,7 +136,7 @@ function renderMemoryList(items) {
     copyBtn.textContent = "📋 Copy";
     copyBtn.onclick = () => {
       navigator.clipboard.writeText(item.text);
-      updateStatus("Copied to clipboard!");
+      updateStatus("Copied!");
     };
 
     const deleteBtn = document.createElement("button");
@@ -154,7 +147,7 @@ function renderMemoryList(items) {
     actionRow.appendChild(copyBtn);
     actionRow.appendChild(deleteBtn);
 
-    card.appendChild(timeSpan);
+    card.appendChild(headerRow);
     card.appendChild(titleEl);
     card.appendChild(textEl);
     card.appendChild(actionRow);
@@ -163,21 +156,20 @@ function renderMemoryList(items) {
   });
 }
 
-/**
- * Filter memories by search term
- */
 function filterMemories(term) {
   const query = term.toLowerCase();
   chrome.storage.local.get(["chatRecall"], (result) => {
     const list = result.chatRecall || [];
-    const filtered = list.filter((item) => item.text.toLowerCase().includes(query) || (item.title && item.title.toLowerCase().includes(query)));
+    const filtered = list.filter(
+      (item) =>
+        item.text.toLowerCase().includes(query) ||
+        (item.title && item.title.toLowerCase().includes(query)) ||
+        (item.provider && item.provider.toLowerCase().includes(query))
+    );
     renderMemoryList(filtered);
   });
 }
 
-/**
- * Delete individual item
- */
 function deleteMemoryItem(id) {
   chrome.storage.local.get(["chatRecall"], (result) => {
     const list = result.chatRecall || [];
@@ -189,9 +181,6 @@ function deleteMemoryItem(id) {
   });
 }
 
-/**
- * Download helper
- */
 function downloadFile(content, fileName, mimeType) {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
