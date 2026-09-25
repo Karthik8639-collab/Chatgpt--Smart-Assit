@@ -2,17 +2,135 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ChatRecall AI – Local Chat Tracker</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatRecall AI Pro - Smart Companion Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 </head>
-<body>
-  <div class="container">
-    <h1>📌 ChatRecall AI</h1>
-    <input type="text" id="searchBar" placeholder="Search saved messages..." />
-    <div id="messages"></div>
-    <button onclick="clearMessages()">Clear All</button>
+<body class="app-body">
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-icon">⚡</div>
+        <div class="logo-text">
+          <h1>ChatRecall AI</h1>
+          <span class="subtext">Smart Companion</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="all">
+          <span class="icon">💬</span> All Memories (<span id="count-all">0</span>)
+        </button>
+        <button class="nav-item" data-view="favorites">
+          <span class="icon">⭐</span> Bookmarks (<span id="count-fav">0</span>)
+        </button>
+        <button class="nav-item" data-view="chatgpt">
+          <span class="icon">🤖</span> ChatGPT Captures (<span id="count-gpt">0</span>)
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="btn-open-add-modal" class="btn primary block">+ New Memory</button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Action Header -->
+      <header class="top-header">
+        <div class="search-bar-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchBar" placeholder="Search prompts, code snippets, key phrases..." />
+          <button id="btn-clear-search" class="clear-search-btn" style="display:none;">✕</button>
+        </div>
+
+        <div class="header-actions">
+          <button id="btn-load-demo" class="btn outline small" title="Load sample data">Load Demo</button>
+          <button id="btn-import-file" class="btn outline small">📥 Import JSON</button>
+          <input type="file" id="file-input-json" accept=".json" style="display:none;" />
+          <button id="btn-export-dropdown" class="btn secondary small">💾 Export ▾</button>
+          <div id="export-menu" class="dropdown-menu" style="display:none;">
+            <button id="export-json">Export JSON</button>
+            <button id="export-md">Export Markdown</button>
+          </div>
+          <button id="btnClearAll" class="btn danger small">🗑️ Clear All</button>
+        </div>
+      </header>
+
+      <!-- Memory Items Grid -->
+      <section class="content-body">
+        <div class="stats-banner">
+          <div class="stat-card">
+            <span class="stat-num" id="stat-total">0</span>
+            <span class="stat-label">Total Saved</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-today">0</span>
+            <span class="stat-label">Saved Today</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-storage">0 KB</span>
+            <span class="stat-label">Local Storage</span>
+          </div>
+        </div>
+
+        <div id="messagesContainer" class="messages-grid">
+          <!-- Dynamically populated memory cards -->
+        </div>
+      </section>
+    </main>
   </div>
+
+  <!-- Add Memory Modal -->
+  <div id="modal-add" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📌 Add New Memory</h3>
+        <button class="modal-close" id="modal-add-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-title">Title / Topic</label>
+          <input type="text" id="input-title" placeholder="e.g., Python Async Execution pattern" />
+        </div>
+        <div class="form-group">
+          <label for="input-text">Prompt & Answer Content</label>
+          <textarea id="input-text" rows="6" placeholder="Paste conversation, code snippets, or AI output..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="input-tags">Tags (comma separated)</label>
+          <input type="text" id="input-tags" placeholder="python, api, shortcut" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-save-new-memory" class="btn primary">Save Memory</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Detail Modal -->
+  <div id="modal-view" class="modal-backdrop" style="display:none;">
+    <div class="modal-card large">
+      <div class="modal-header">
+        <h3 id="view-title">Memory Detail</h3>
+        <button class="modal-close" id="modal-view-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="meta-info">
+          <span id="view-time">Timestamp</span> | <span id="view-source">Source</span>
+        </div>
+        <pre id="view-text-content" class="code-preview"></pre>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-copy-view" class="btn secondary">📋 Copy Text</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
