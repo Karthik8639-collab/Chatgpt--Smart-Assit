@@ -1,31 +1,64 @@
 /**
- * ChatGPT SmartAssist - Content Script (Injected on chatgpt.com & chat.openai.com)
- * High-performance, non-destructive search highlighter, draggable panel, turn capture.
+ * OmniAssist AI - Content Script
+ * Universal In-Page Engine for Gemini, ChatGPT, Claude, Perplexity, DeepSeek, Poe, and Any AI/Web Page.
  */
 
 (function () {
-  if (window.__smartAssistInjected) return;
-  window.__smartAssistInjected = true;
+  if (window.__omniAssistInjected) return;
+  window.__omniAssistInjected = true;
 
   let currentSearchMatches = [];
   let currentMatchIndex = -1;
   let observerDebounceTimer = null;
+  let providerInfo = detectCurrentProvider();
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initSmartAssist);
+    document.addEventListener("DOMContentLoaded", initOmniAssist);
   } else {
-    initSmartAssist();
+    initOmniAssist();
   }
 
-  function initSmartAssist() {
+  function initOmniAssist() {
     createFloatingWidget();
     attachMessageListeners();
     observeChatDOM();
   }
 
-  /**
-   * Create Draggable Floating SmartAssist Control Bar on ChatGPT
-   */
+  function detectCurrentProvider() {
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes("gemini.google.com")) return { name: "Gemini", icon: "✨", badgeClass: "badge-gemini" };
+    if (host.includes("chatgpt.com") || host.includes("chat.openai.com")) return { name: "ChatGPT", icon: "🤖", badgeClass: "badge-chatgpt" };
+    if (host.includes("claude.ai")) return { name: "Claude", icon: "🟧", badgeClass: "badge-claude" };
+    if (host.includes("perplexity.ai")) return { name: "Perplexity", icon: "🔍", badgeClass: "badge-perplexity" };
+    if (host.includes("deepseek.com")) return { name: "DeepSeek", icon: "🐋", badgeClass: "badge-deepseek" };
+    if (host.includes("poe.com")) return { name: "Poe", icon: "⚡", badgeClass: "badge-poe" };
+    if (host.includes("mistral.ai")) return { name: "Mistral", icon: "🌀", badgeClass: "badge-mistral" };
+    return { name: "Web Page", icon: "🌐", badgeClass: "badge-web" };
+  }
+
+  function getPlatformSelectors() {
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes("gemini.google.com")) {
+      return "user-query, message-content, .query-text, .response-text, model-response, conversation-container, .message-content";
+    }
+    if (host.includes("chatgpt.com") || host.includes("chat.openai.com")) {
+      return "article, [data-message-author-role], .user-message, .agent-turn";
+    }
+    if (host.includes("claude.ai")) {
+      return ".font-user-message, .font-claude-message, [data-is-streaming], div[class*='content-']";
+    }
+    if (host.includes("perplexity.ai")) {
+      return ".query-text, .prose, [data-testimonial]";
+    }
+    if (host.includes("deepseek.com")) {
+      return ".kim-chat-message, .user-message, .assistant-message";
+    }
+    if (host.includes("poe.com")) {
+      return "[class*='Message_botMessageBubble'], [class*='Message_humanMessageBubble']";
+    }
+    return "article, main, p, [role='main'], [data-message], .message";
+  }
+
   function createFloatingWidget() {
     if (document.getElementById("smartassist-widget")) return;
 
@@ -35,13 +68,14 @@
     widget.innerHTML = `
       <div class="smartassist-header" id="smartassist-header">
         <div class="smartassist-title">
-          <span class="smartassist-icon">⚡</span> SmartAssist
+          <span class="smartassist-icon">⚡</span> OmniAssist
+          <span class="provider-badge ${providerInfo.badgeClass}">${providerInfo.icon} ${providerInfo.name}</span>
         </div>
         <button id="smartassist-toggle-btn" title="Minimize/Expand">—</button>
       </div>
       <div class="smartassist-body" id="smartassist-body">
         <div class="smartassist-search-box">
-          <input type="text" id="smartassist-input" placeholder="Search in this chat..." />
+          <input type="text" id="smartassist-input" placeholder="Search in ${providerInfo.name}..." />
           <button id="smartassist-search-go" title="Search">🔍</button>
         </div>
         <div class="smartassist-nav-row" id="smartassist-nav-row" style="display:none;">
@@ -53,7 +87,7 @@
           </div>
         </div>
         <div class="smartassist-action-btns">
-          <button id="smartassist-save-chat-btn" class="smartassist-btn">📌 Bookmark Chat Turn</button>
+          <button id="smartassist-save-chat-btn" class="smartassist-btn">📌 Bookmark Turn</button>
           <button id="smartassist-summarize-btn" class="smartassist-btn secondary">⚡ Summarize Chat</button>
         </div>
       </div>
@@ -61,10 +95,8 @@
 
     document.body.appendChild(widget);
 
-    // Make floating widget draggable
     makeDraggable(widget, document.getElementById("smartassist-header"));
 
-    // Event Listeners for UI
     document.getElementById("smartassist-toggle-btn").addEventListener("click", (e) => {
       e.stopPropagation();
       const body = document.getElementById("smartassist-body");
@@ -73,11 +105,11 @@
 
     const input = document.getElementById("smartassist-input");
     input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") performInChatSearch(input.value);
+      if (e.key === "Enter") performInPageSearch(input.value);
     });
 
     document.getElementById("smartassist-search-go").addEventListener("click", () => {
-      performInChatSearch(input.value);
+      performInPageSearch(input.value);
     });
 
     document.getElementById("smartassist-prev").addEventListener("click", () => navigateMatch(-1));
@@ -88,13 +120,9 @@
     document.getElementById("smartassist-summarize-btn").addEventListener("click", summarizeCurrentChat);
   }
 
-  /**
-   * Draggable panel utility
-   */
   function makeDraggable(element, handle) {
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     handle.style.cursor = "move";
-
     handle.onmousedown = dragMouseDown;
 
     function dragMouseDown(e) {
@@ -124,9 +152,6 @@
     }
   }
 
-  /**
-   * Listen for background or popup requests with error isolation
-   */
   function attachMessageListeners() {
     if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -134,11 +159,11 @@
           if (request.action === "HIGHLIGHT_SEARCH") {
             const input = document.getElementById("smartassist-input");
             if (input) input.value = request.term;
-            performInChatSearch(request.term);
+            performInPageSearch(request.term);
             sendResponse({ status: "success" });
           } else if (request.action === "EXTRACT_CURRENT_CHAT") {
             const turns = extractChatTurns();
-            sendResponse({ status: "success", data: turns });
+            sendResponse({ status: "success", data: turns, provider: providerInfo.name });
           }
         } catch (err) {
           sendResponse({ status: "error", message: err.message });
@@ -148,20 +173,17 @@
     }
   }
 
-  /**
-   * Two-pass non-destructive TreeWalker search highlighter
-   */
-  function performInChatSearch(term) {
+  function performInPageSearch(term) {
     clearSearchHighlights();
     if (!term || !term.trim()) return;
 
     const query = term.trim().toLowerCase();
-    const articles = document.querySelectorAll("article, [data-message-author-role], .user-message, .agent-turn");
-    const scope = articles.length > 0 ? Array.from(articles) : [document.body];
+    const selectorStr = getPlatformSelectors();
+    const elements = document.querySelectorAll(selectorStr);
+    const scope = elements.length > 0 ? Array.from(elements) : [document.body];
 
     const matchingNodes = [];
 
-    // Pass 1: Traverse and collect matching text nodes without mutating DOM
     scope.forEach((container) => {
       const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
         acceptNode: (node) => {
@@ -179,7 +201,6 @@
 
     const highlights = [];
 
-    // Pass 2: Mutate DOM nodes cleanly after traversal completes
     matchingNodes.forEach((textNode) => {
       const parent = textNode.parentElement;
       if (!parent) return;
@@ -261,17 +282,15 @@
     if (navRow) navRow.style.display = "none";
   }
 
-  /**
-   * Extract chat turns from ChatGPT DOM
-   */
   function extractChatTurns() {
     const turns = [];
-    const elements = document.querySelectorAll("article, [data-message-author-role]");
+    const selectorStr = getPlatformSelectors();
+    const elements = document.querySelectorAll(selectorStr);
 
     elements.forEach((el) => {
-      const role = el.getAttribute("data-message-author-role") || (el.innerText.includes("ChatGPT") ? "assistant" : "user");
-      const text = el.innerText.trim();
+      const text = el.innerText ? el.innerText.trim() : "";
       if (text && text.length > 2) {
+        const role = inferRole(el, text);
         turns.push({ role, text, time: new Date().toLocaleTimeString() });
       }
     });
@@ -279,9 +298,21 @@
     return turns;
   }
 
-  /**
-   * Save active chat turn to SmartAssist memory with runtime safety guards
-   */
+  function inferRole(el, text) {
+    const attrRole = el.getAttribute("data-message-author-role");
+    if (attrRole) return attrRole;
+
+    const tag = el.tagName.toLowerCase();
+    if (tag === "user-query" || el.classList.contains("query-text") || el.classList.contains("font-user-message")) {
+      return "user";
+    }
+    if (tag === "model-response" || el.classList.contains("response-text") || el.classList.contains("font-claude-message")) {
+      return "assistant";
+    }
+
+    return text.length < 150 ? "user" : "assistant";
+  }
+
   function saveCurrentChatTurn() {
     const turns = extractChatTurns();
     if (turns.length === 0) {
@@ -297,10 +328,11 @@
     const payload = {
       id: Date.now().toString(),
       text: snippetText,
-      title: document.title || "ChatGPT Conversation",
+      title: document.title || `${providerInfo.name} Conversation`,
+      provider: providerInfo.name,
       time: new Date().toLocaleString(),
       source: window.location.href,
-      tags: ["chatgpt-turn"],
+      tags: [providerInfo.name.toLowerCase(), "ai-turn"],
       isFavorite: false
     };
 
@@ -310,7 +342,7 @@
           if (chrome.runtime.lastError) {
             fallbackLocalSave(payload);
           } else {
-            showNotification(resp?.message || "Saved to SmartAssist!");
+            showNotification(resp?.message || `Saved to OmniAssist (${providerInfo.name})!`);
           }
         });
       } else {
@@ -325,12 +357,9 @@
     let saved = JSON.parse(localStorage.getItem("chatRecall") || "[]");
     saved.unshift(payload);
     localStorage.setItem("chatRecall", JSON.stringify(saved));
-    showNotification("Saved to local browser storage!");
+    showNotification(`Saved to local browser storage (${providerInfo.name})!`);
   }
 
-  /**
-   * Generate quick summary
-   */
   function summarizeCurrentChat() {
     const turns = extractChatTurns();
     if (turns.length === 0) {
@@ -344,7 +373,7 @@
       .slice(-3)
       .join("\n- ");
 
-    const summaryText = `📊 **Chat Summary**\n• Total Turns: ${turns.length}\n• Total Words: ~${totalWords}\n• Recent Topics:\n- ${keyPhrases}`;
+    const summaryText = `📊 **${providerInfo.name} Summary**\n• Total Turns: ${turns.length}\n• Total Words: ~${totalWords}\n• Recent Topics:\n- ${keyPhrases}`;
     alert(summaryText);
   }
 
@@ -356,9 +385,6 @@
     setTimeout(() => note.remove(), 3000);
   }
 
-  /**
-   * Throttled DOM observer to minimize CPU overhead during streaming
-   */
   function observeChatDOM() {
     const observer = new MutationObserver(() => {
       if (observerDebounceTimer) return;
