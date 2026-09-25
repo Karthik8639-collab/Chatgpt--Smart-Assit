@@ -1,5 +1,6 @@
 /* ==========================================================================
-   ChatGPT SmartAssist & ChatRecall AI Pro - Master Stylesheet (State-of-the-Art)
+   OmniAssist AI - Universal AI Chat Recall & Productivity Suite
+   Master Stylesheet supporting Gemini, ChatGPT, Claude, Perplexity, DeepSeek, Poe & Web.
    ========================================================================== */
 
 :root {
@@ -40,13 +41,65 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ==========================================================================
-   1. Extension Popup Styles (popup.html)
-   ========================================================================== */
+/* Provider Badges */
+.provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
+.badge-gemini {
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.25), rgba(155, 81, 224, 0.25));
+  border: 1px solid #4285f4;
+  color: #8ab4f8;
+}
+
+.badge-chatgpt {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #6ee7b7;
+}
+
+.badge-claude {
+  background: rgba(217, 119, 6, 0.2);
+  border: 1px solid #d97706;
+  color: #fcd34d;
+}
+
+.badge-perplexity {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid #6366f1;
+  color: #a5b4fc;
+}
+
+.badge-deepseek {
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid #0ea5e9;
+  color: #7dd3fc;
+}
+
+.badge-poe {
+  background: rgba(236, 72, 153, 0.2);
+  border: 1px solid #ec4899;
+  color: #f472b6;
+}
+
+.badge-web {
+  background: rgba(148, 163, 184, 0.2);
+  border: 1px solid #94a3b8;
+  color: #cbd5e1;
+}
+
+/* Extension Popup Styles */
 body.popup-body {
-  width: 350px;
-  height: 520px;
+  width: 360px;
+  height: 530px;
   overflow: hidden;
   background: var(--bg-dark);
 }
@@ -174,7 +227,13 @@ body.popup-body {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+}
+
+.memory-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .memory-time {
@@ -196,7 +255,7 @@ body.popup-body {
 .memory-actions {
   display: flex;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 4px;
   justify-content: flex-end;
 }
 
@@ -270,10 +329,7 @@ body.popup-body {
   text-decoration: none;
 }
 
-/* ==========================================================================
-   2. Standalone Web Dashboard Styles (index.html)
-   ========================================================================== */
-
+/* Standalone Web Dashboard Styles */
 .app-body {
   height: 100vh;
   overflow: hidden;
@@ -285,9 +341,8 @@ body.popup-body {
   width: 100vw;
 }
 
-/* Sidebar */
 .sidebar {
-  width: 260px;
+  width: 270px;
   background: var(--bg-card);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -299,7 +354,7 @@ body.popup-body {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 .logo-icon {
@@ -323,7 +378,7 @@ body.popup-body {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
 }
 
@@ -336,7 +391,7 @@ body.popup-body {
   color: var(--text-muted);
   padding: 10px 14px;
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 500;
   cursor: pointer;
   text-align: left;
@@ -358,7 +413,6 @@ body.popup-body {
   margin-top: auto;
 }
 
-/* Main Content */
 .main-content {
   flex: 1;
   display: flex;
@@ -384,7 +438,7 @@ body.popup-body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 8px 16px;
-  width: 400px;
+  width: 440px;
   gap: 10px;
 }
 
@@ -410,7 +464,6 @@ body.popup-body {
   position: relative;
 }
 
-/* Buttons */
 .btn {
   padding: 8px 16px;
   border-radius: var(--radius-sm);
@@ -496,7 +549,6 @@ body.popup-body {
   background: var(--bg-card-hover);
 }
 
-/* Content Body & Grid */
 .content-body {
   flex: 1;
   overflow-y: auto;
@@ -532,7 +584,7 @@ body.popup-body {
 
 .messages-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
@@ -563,6 +615,7 @@ body.popup-body {
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.3;
+  margin-top: 4px;
 }
 
 .star-btn {
@@ -643,7 +696,7 @@ body.popup-body {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  width: 500px;
+  width: 520px;
   max-width: 90vw;
   box-shadow: var(--shadow-main);
   display: flex;
@@ -652,7 +705,7 @@ body.popup-body {
 }
 
 .modal-card.large {
-  width: 700px;
+  width: 720px;
 }
 
 .modal-header {
@@ -693,6 +746,7 @@ body.popup-body {
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
   background: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -704,6 +758,7 @@ body.popup-body {
 }
 
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--primary);
@@ -735,15 +790,12 @@ mark.highlight {
   border-radius: 2px;
 }
 
-/* ==========================================================================
-   3. In-ChatGPT Floating Widget (Injected by content.js)
-   ========================================================================== */
-
+/* Floating OmniAssist Widget */
 #smartassist-widget {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 280px;
+  width: 300px;
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 12px;
